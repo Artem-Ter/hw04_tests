@@ -39,7 +39,7 @@ class PostPagesTest(TestCase):
     def setUp(self):
         # Создаем авторизованный клиент
         self.authorized_client = Client()
-        self.authorized_client.force_login(PostPagesTest.user)
+        self.authorized_client.force_login(self.user)
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -78,8 +78,8 @@ class PostPagesTest(TestCase):
         """Пост отфильтрованный по id в шаблоне
         post_detail соответсвует контексту."""
         response = self.authorized_client.get(
-            PostPagesTest.REVERSE_POST_DETAIL)
-        expected = Post.objects.get(id=PostPagesTest.post.id)
+            self.REVERSE_POST_DETAIL)
+        expected = Post.objects.get(id=self.post.id)
         self.assertEqual(response.context['post'], expected)
 
     def test_post_edit_and_create_pages_show_correct_context(self):
@@ -104,11 +104,11 @@ class PostPagesTest(TestCase):
         на главной странице сайта,
         на странице выбранной группы,
         в профайле пользователя."""
-        result = Post.objects.get(group=PostPagesTest.post.group)
+        result = Post.objects.get(group=self.post.group)
         check_pages = (
-            PostPagesTest.REVERSE_INDEX,
-            PostPagesTest.REVERSE_GROUP_LIST,
-            PostPagesTest.REVERSE_PROFILE
+            self.REVERSE_INDEX,
+            self.REVERSE_GROUP_LIST,
+            self.REVERSE_PROFILE
         )
         for page in check_pages:
             with self.subTest(page=page):
@@ -124,7 +124,7 @@ class PostPagesTest(TestCase):
             slug='test_slug_1',
             description='Тестовое_описание_1',
         )
-        result = Post.objects.get(group=PostPagesTest.post.group)
+        result = Post.objects.get(group=self.post.group)
         response = self.authorized_client.get(
             reverse('posts:group_list', kwargs={'slug': group_1.slug})
         )
