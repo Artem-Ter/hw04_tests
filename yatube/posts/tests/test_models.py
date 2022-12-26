@@ -1,10 +1,6 @@
-from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Post, Group
-
-
-User = get_user_model()
+from ..models import Post, Group, User
 
 
 class PostModelTest(TestCase):
@@ -19,14 +15,14 @@ class PostModelTest(TestCase):
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Тестовый пост',
+            text='Пост' * 5,
         )
 
     def test_models_have_correct_object_names(self):
         """Проверяем, что у моделей корректно работает __str__."""
-        post = PostModelTest.post
+        post = self.post
         expected_post_name = post.text[:15]
-        group = PostModelTest.group
+        group = self.group
         expected_group_name = group.title
         models_objects_names = {
             'post': (post, expected_post_name),
@@ -38,7 +34,7 @@ class PostModelTest(TestCase):
 
     def test_verbose_name(self):
         """verbose_name в полях совпадает с ожидаемым."""
-        post = PostModelTest.post
+        post = self.post
         field_verboses = {
             'text': 'Текст поста',
             'pub_date': 'Дата публикации',
@@ -52,7 +48,7 @@ class PostModelTest(TestCase):
 
     def test_help_text(self):
         """help_text в полях совпадает с ожидаемым."""
-        post = PostModelTest.post
+        post = self.post
         field_help_texts = {
             'text': 'Введите текст поста',
             'group': 'Группа, к которой будет относиться пост',

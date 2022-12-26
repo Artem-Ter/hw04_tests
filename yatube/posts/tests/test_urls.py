@@ -1,10 +1,10 @@
 # posts/tests/test_urls.py
-from django.contrib.auth import get_user_model
+from http import HTTPStatus
+
 from django.test import TestCase, Client
+from django.urls import reverse
 
-from ..models import Post, Group
-
-User = get_user_model()
+from ..models import Post, Group, User
 
 
 class PostUrlTests(TestCase):
@@ -23,16 +23,31 @@ class PostUrlTests(TestCase):
             author=cls.user,
             text='Тестовый пост',
         )
+        cls.REVERSE_INDEX = reverse('posts:index')
+        cls.REVERSE_GROUP_LIST = (
+            reverse('posts:group_list', kwargs={'slug': cls.group.slug})
+        )
+        cls.REVERSE_PROFILE = (
+            reverse('posts:profile', kwargs={'username': cls.post.author})
+        )
+        cls.REVERSE_POST_DETAIL = (
+            reverse('posts:post_detail', kwargs={'post_id': cls.post.id})
+        )
+        cls.REVERSE_POST_EDIT = (
+            reverse('posts:post_edit', kwargs={'post_id': cls.post.id})
+        )
+        cls.REVERSE_POST_CREATE = reverse('posts:post_create')
+        cls.UNEXISTING_PAGE = '/unexisting_page/'
 
     def setUp(self):
         # Создаем неавторизованный клиент
         self.guest_client = Client()
         # Создаем пользователя
-        self.user = User.objects.create_user(username='HasNoName')
+        self.user_not_author = User.objects.create_user(username='HasNoName')
         # Создаем второй клиент
         self.authorized_client = Client()
         # Авторизуем пользователя
-        self.authorized_client.force_login(self.user)
+        self.authorized_client.force_login(self.user_not_author)
         # Создаем Автора
         self.author = Client()
         self.author.force_login(PostUrlTests.user)
@@ -41,44 +56,65 @@ class PostUrlTests(TestCase):
         """URL-адрес использует соответствующий шаблон."""
         # Шаблоны по адресам
         templates_url_names = {
-            '/': 'posts/index.html',
-            '/group/test-slug/': 'posts/group_list.html',
-            '/profile/auth/': 'posts/profile.html',
-            '/posts/1/': 'posts/post_detail.html',
-            '/create/': 'posts/create_post.html',
-            '/posts/1/edit/': 'posts/create_post.html',
+            self.REVERSE_INDEX: 'posts/index.html',
+            self.REVERSE_GROUP_LIST: 'posts/group_list.html',
+            self.REVERSE_PROFILE: 'posts/profile.html',
+            self.REVERSE_POST_DETAIL: 'posts/post_detail.html',
+            self.REVERSE_POST_EDIT: 'posts/create_post.html',
+            self.REVERSE_POST_CREATE: 'posts/create_post.html',
         }
         for address, template in templates_url_names.items():
             with self.subTest(address=address):
                 response = self.author.get(address)
                 self.assertTemplateUsed(response, template)
 
-    def test_post_html_pages_available(self):
-        """Проверяет доступ к страницам Posts
-        с учетом прав доступа пользователей."""
-        # Шаблоны по адресам
-        url_names = (
-            '/',
-            '/group/test-slug/',
-            '/profile/auth/',
-            '/posts/1/',
-            '/create/',
-            '/posts/1/edit/',
-            '/unexisting_page/',
-        )
-        for address in url_names:
+    def test_guest_client_post_html_pages_available(self):
+        """Проверяет доступ к страницам Posts у неавторизованного клиента."""
+        # Создаем словарь url: HTTPStatus для guest_client
+        url_guest_client_status = {
+            self.REVERSE_INDEX: HTTPStatus.OK,
+            self.REVERSE_GROUP_LIST: HTTPStatus.OK,
+            self.REVERSE_PROFILE: HTTPStatus.OK,
+            self.REVERSE_POST_DETAIL: HTTPStatus.OK,
+            self.REVERSE_POST_EDIT: HTTPStatus.FOUND,
+            self.REVERSE_POST_CREATE: HTTPStatus.FOUND,
+            self.UNEXISTING_PAGE: HTTPStatus.NOT_FOUND,
+        }
+        for address, status in url_guest_client_status.items():
             with self.subTest(address=address):
                 response = self.guest_client.get(address)
-                response_authorized = self.authorized_client.get(address)
-                response_author = self.author.get(address)
-                if address == '/unexisting_page/':
-                    self.assertEqual(response.status_code, 404)
-                elif address == '/posts/1/edit/':
-                    self.assertEqual(response.status_code, 302)
-                    self.assertEqual(response_authorized.status_code, 302)
-                    self.assertEqual(response_author.status_code, 200)
-                elif address == '/create/':
-                    self.assertEqual(response.status_code, 302)
-                    self.assertEqual(response_authorized.status_code, 200)
-                else:
-                    self.assertEqual(response.status_code, 200)
+                self.assertEqual(response.status_code, status)
+
+    def test_authorized_client_post_html_pages_available(self):
+        """Проверяет доступ к страницам Posts у авторизованного клиента."""
+        # Создаем словарь url: HTTPStatus для authorized_client
+        url_authorized_client_status = {
+            self.REVERSE_INDEX: HTTPStatus.OK,
+            self.REVERSE_GROUP_LIST: HTTPStatus.OK,
+            self.REVERSE_PROFILE: HTTPStatus.OK,
+            self.REVERSE_POST_DETAIL: HTTPStatus.OK,
+            self.REVERSE_POST_EDIT: HTTPStatus.FOUND,
+            self.REVERSE_POST_CREATE: HTTPStatus.OK,
+            self.UNEXISTING_PAGE: HTTPStatus.NOT_FOUND,
+        }
+        for address, status in url_authorized_client_status.items():
+            with self.subTest(address=address):
+                response = self.authorized_client.get(address)
+                self.assertEqual(response.status_code, status)
+
+    def test_author_post_html_pages_available(self):
+        """Проверяет доступ к страницам Posts у Автора."""
+        # Создаем словарь url: HTTPStatus для author
+        url_author_status = {
+            self.REVERSE_INDEX: HTTPStatus.OK,
+            self.REVERSE_GROUP_LIST: HTTPStatus.OK,
+            self.REVERSE_PROFILE: HTTPStatus.OK,
+            self.REVERSE_POST_DETAIL: HTTPStatus.OK,
+            self.REVERSE_POST_EDIT: HTTPStatus.OK,
+            self.REVERSE_POST_CREATE: HTTPStatus.OK,
+            self.UNEXISTING_PAGE: HTTPStatus.NOT_FOUND,
+        }
+        for address, status in url_author_status.items():
+            with self.subTest(address=address):
+                response = self.author.get(address)
+                self.assertEqual(response.status_code, status)

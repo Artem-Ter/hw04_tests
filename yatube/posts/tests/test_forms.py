@@ -2,10 +2,19 @@
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from ..models import Post, User
+from ..models import Post, Group, User
 
 
 class PostCreateFormTest(TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        cls.group = Group.objects.create(
+            title='Тестовая группа',
+            slug='test-slug',
+            description='Тестовое описание',
+        )
+
     def setUp(self) -> None:
         self.user = User.objects.create_user(username='HasNoName')
         # Создаем авторизованный клент.
@@ -19,7 +28,8 @@ class PostCreateFormTest(TestCase):
         # Подсчитаем количество записей в Post
         posts_count = Post.objects.count()
         form_data = {
-            'text': 'test_text'
+            'text': 'test_text',
+            'group': self.group.id
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
@@ -33,10 +43,12 @@ class PostCreateFormTest(TestCase):
         )
         # Проверяем, увеличилось ли число постов
         self.assertEqual(Post.objects.count(), posts_count + 1)
-        # Проверяем, что создалась запись с заданным текстом
+        # Проверяем, что создалась запись с заданным текстом и группой
         self.assertTrue(
             Post.objects.filter(
                 text='test_text'
+            ).filter(
+                group_id=self.group.id
             ).exists()
         )
 
@@ -51,7 +63,8 @@ class PostCreateFormTest(TestCase):
         # Подсчитаем количество записей в Post
         posts_count = Post.objects.count()
         form_data = {
-            'text': 'edited_text'
+            'text': 'edited_text',
+            'group': self.group.id
         }
         response = self.authorized_client.post(
             reverse('posts:post_edit', args=(self.post.id,)),
@@ -65,5 +78,11 @@ class PostCreateFormTest(TestCase):
         )
         # Проверяем, что число постов не изменилось
         self.assertEqual(Post.objects.count(), posts_count)
-        # Проверяем, что запись с измененным текстом существует
-        self.assertTrue(Post.objects.filter(text='edited_text').exists())
+        # Проверяем, что запись с измененным текстом и группой существует
+        self.assertTrue(
+            Post.objects.filter(
+                text='edited_text'
+            ).filter(
+                group_id=self.group.id
+            ).exists()
+        )
