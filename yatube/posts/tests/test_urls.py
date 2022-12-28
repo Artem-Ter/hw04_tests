@@ -50,7 +50,7 @@ class PostUrlTests(TestCase):
         self.authorized_client.force_login(self.user_not_author)
         # Создаем Автора
         self.author = Client()
-        self.author.force_login(PostUrlTests.user)
+        self.author.force_login(self.user)
 
     def test_urls_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""

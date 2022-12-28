@@ -39,12 +39,12 @@ class PaginatorViewsTest(TestCase):
     def setUp(self) -> None:
         # Создаем авторизованный клиент
         self.authorized_client = Client()
-        self.authorized_client.force_login(PaginatorViewsTest.user)
+        self.authorized_client.force_login(self.user)
 
     def test_first_page_contain_correct_amount_of_posts(self):
         """Проверяет что количество постов на первой странице равно
         VIEW_ELEMENTS."""
-        for reverse_name in PaginatorViewsTest.check_pages:
+        for reverse_name in self.check_pages:
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name)
                 self.assertEqual(len(response.context['page_obj']),
@@ -53,7 +53,7 @@ class PaginatorViewsTest(TestCase):
     def test_second_page_contain_correct_amount_of_posts(self):
         """Проверяет что количество постов на второй стронице равно
         POST_AMOUNT - VIEW_ELEMENTS."""
-        for reverse_name in PaginatorViewsTest.check_pages:
+        for reverse_name in self.check_pages:
             with self.subTest(reverse_name=reverse_name):
                 response = self.authorized_client.get(reverse_name + '?page=2')
                 self.assertEqual(
